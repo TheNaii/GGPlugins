@@ -1,0 +1,19 @@
+{
+  "modules": [
+    {
+      "id": "lol-account-manager",
+      "displayName": "LoL Account Manager",
+      "description": "Encrypted account vault + quick login for League of Legends.",
+      "author": "NaiiGames",
+      "iconUrl": "https://raw.githubusercontent.com/TheNaii/GGPlugins/main/LoLAMModule/icon.png",
+      "latestVersion": "0.0.1",
+      "releases": [
+        {
+          "version": "0.0.1",
+          "downloadUrl": "",
+          "changelog": "Initial release."
+        }
+      ]
+    }
+  ]
+}
