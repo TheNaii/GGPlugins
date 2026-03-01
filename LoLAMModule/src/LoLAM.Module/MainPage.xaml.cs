@@ -428,8 +428,38 @@ public partial class MainPage : UserControl, INotifyPropertyChanged
 
     private void OpenDetails_Click(object sender, RoutedEventArgs e)
     {
-        // TODO: navigate to AccountDetailsPage
+        if (SelectedAccount is null) return;
+
+        var detailsPage = new AccountDetailsPage(this, SelectedAccount);
+
+        // Navigate: swap this page's host ContentControl content
+        DependencyObject current = this;
+        while (true)
+        {
+            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            if (current is null) return;
+
+            if (current is ContentControl cc)
+            {
+                cc.Content = detailsPage;
+                return;
+            }
+        }
     }
+
+    // ──────────────────────────────────────────
+    // Called by AccountDetailsPage after a save
+    // ──────────────────────────────────────────
+
+    public async Task OnDetailsPageSavedAsync(string okStatus)
+    {
+        // The model was already mutated by AccountDetailsPage; just upload.
+        IsDirty = false;
+        await AutosaveAsync(okStatus);
+        AccountsView.Refresh();
+    }
+
+    public void RebuildServersPublic() => BuildServers();
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? name = null)

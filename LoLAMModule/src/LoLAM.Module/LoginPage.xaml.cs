@@ -59,6 +59,7 @@ public partial class LoginPage : UserControl
             HideStatus();
 
             await _module.Presence.SetOnlineAsync(session);
+            _module.ActiveSession = session;
             var accountsJson = await _module.Store.DownloadAccountsJsonAsync(session);
 
             NavigateToMain(session, accountsJson);

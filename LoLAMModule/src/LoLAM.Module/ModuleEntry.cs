@@ -15,6 +15,9 @@ public sealed class ModuleEntry : IGGLauncherModule
     internal IPresenceService? Presence { get; private set; }
     internal IAuthSessionStore? SessionStore { get; private set; }
 
+    /// <summary>Set by LoginPage / MainPage after a successful auth so Dispose can set offline.</summary>
+    internal AuthSession? ActiveSession { get; set; }
+
     public string Id => "lol-account-manager";
     public string DisplayName => "LoL Account Manager";
 
@@ -43,6 +46,11 @@ public sealed class ModuleEntry : IGGLauncherModule
 
     public void Dispose()
     {
-        // Later: set offline on unload when you track current session.
+        // Best-effort: mark user offline when the module is unloaded.
+        if (ActiveSession is not null && Presence is not null)
+        {
+            // Fire-and-forget; we can't await in Dispose.
+            _ = Presence.SetOfflineAsync(ActiveSession);
+        }
     }
 }
