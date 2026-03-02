@@ -214,19 +214,31 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
 
     private void Back_Click(object sender, RoutedEventArgs e)
     {
-        if (IsDirty)
+        if (!IsDirty)
         {
+            NavigateBack();
+            return;
+        }
+
+        // Use the launcher's custom dialog system if available
+        if (Application.Current.MainWindow is GGLauncher.App.MainWindow mw)
+        {
+            mw.ShowCustomConfirm(
+                "Unsaved Changes",
+                "You have unsaved changes. Discard them and go back?",
+                () => NavigateBack());
+        }
+        else
+        {
+            // Fallback (should never happen in normal use)
             var result = MessageBox.Show(
                 "You have unsaved changes. Discard them and go back?",
                 "Unsaved Changes",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
-
-            if (result != MessageBoxResult.Yes)
-                return;
+            if (result == MessageBoxResult.Yes)
+                NavigateBack();
         }
-
-        NavigateBack();
     }
 
     private void NavigateBack()
