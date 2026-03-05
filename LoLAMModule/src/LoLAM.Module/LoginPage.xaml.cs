@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -17,7 +17,6 @@ public partial class LoginPage : UserControl
         InitializeComponent();
         _module = module;
 
-        // Better UX: focus email on open
         Loaded += async (_, _) =>
         {
             EmailBox.Focus();
@@ -31,7 +30,6 @@ public partial class LoginPage : UserControl
     private async void Register_Click(object sender, RoutedEventArgs e)
         => await AuthFlowAsync(isRegister: true);
 
-    // Enter anywhere triggers Login; Shift+Enter does nothing special
     private async void Page_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && !_busy)
@@ -48,30 +46,53 @@ public partial class LoginPage : UserControl
         try
         {
             if (_module.Auth is null || _module.Store is null || _module.Presence is null)
+            {
+                LogDebug("TryAutoLogin: services null");
                 return;
+            }
 
-            // If a cached refresh token exists, restore session and skip login UI.
+            LogDebug("TryAutoLogin: calling TryRestoreSessionAsync...");
             var session = await _module.Auth.TryRestoreSessionAsync();
             if (session is null)
+            {
+                LogDebug("TryAutoLogin: session null (no saved session or refresh failed)");
                 return;
+            }
 
+            LogDebug($"TryAutoLogin: restored for {session.Email}");
             SetBusy(true);
-            HideStatus();
+            ShowStatus("Restoring session…");
 
             await _module.Presence.SetOnlineAsync(session);
             _module.ActiveSession = session;
             var accountsJson = await _module.Store.DownloadAccountsJsonAsync(session);
 
+            LogDebug("TryAutoLogin: navigating to main");
             NavigateToMain(session, accountsJson);
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore restore failures; user can log in normally.
+            LogDebug($"TryAutoLogin FAILED: {ex}");
         }
         finally
         {
             SetBusy(false);
         }
+    }
+
+    private static void LogDebug(string msg)
+    {
+        try
+        {
+            var logDir = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "GGLauncherDev", "logs");
+            System.IO.Directory.CreateDirectory(logDir);
+            System.IO.File.AppendAllText(
+                System.IO.Path.Combine(logDir, "lolam-auth-debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] {msg}{Environment.NewLine}");
+        }
+        catch { }
     }
 
     private async Task AuthFlowAsync(bool isRegister)
@@ -102,7 +123,15 @@ public partial class LoginPage : UserControl
                 ? await _module.Auth.RegisterAsync(email, pass)
                 : await _module.Auth.LoginAsync(email, pass);
 
+            // Handle "Remember Me": if unchecked, clear the persisted session so
+            // the user won't be auto-logged-in next time.
+            if (RememberMeBox.IsChecked != true)
+            {
+                _module.AuthConcrete?.ClearSession();
+            }
+
             await _module.Presence.SetOnlineAsync(session);
+            _module.ActiveSession = session;
 
             var accountsJson = await _module.Store.DownloadAccountsJsonAsync(session);
 
@@ -110,7 +139,6 @@ public partial class LoginPage : UserControl
         }
         catch (Exception ex)
         {
-            // Never show raw Firebase request/response (contains URLs, payloads, etc.)
             ShowStatus(ToFriendlyAuthError(ex));
         }
         finally
@@ -142,8 +170,6 @@ public partial class LoginPage : UserControl
             }
 
             await _module.Auth.SendPasswordResetAsync(email);
-
-            // Avoid account enumeration
             ShowStatus("If an account exists for that email, a reset link has been sent.");
         }
         catch (Exception ex)
@@ -159,48 +185,39 @@ public partial class LoginPage : UserControl
     private void NavigateToMain(AuthSession session, string accountsJson)
     {
         var next = new MainPage(_module, session, accountsJson);
-
-        // Replace NavigationService with simple "swap content" navigation:
-        // Find the nearest ContentControl parent (Frame / ContentPresenter / Tab content host)
-        // and replace its Content.
         var host = FindHostContentControl();
         if (host is null)
         {
             ShowStatus("Could not navigate (host not found).");
             return;
         }
-
         host.Content = next;
     }
 
     private ContentControl? FindHostContentControl()
     {
         DependencyObject current = this;
-
         while (true)
         {
             current = System.Windows.Media.VisualTreeHelper.GetParent(current);
-            if (current is null)
-                return null;
-
-            if (current is ContentControl cc)
-                return cc;
+            if (current is null) return null;
+            if (current is ContentControl cc) return cc;
         }
     }
 
     private void SetBusy(bool busy)
     {
         _busy = busy;
-
         EmailBox.IsEnabled = !busy;
         PasswordBox.IsEnabled = !busy;
         LoginButton.IsEnabled = !busy;
         RegisterButton.IsEnabled = !busy;
         ForgotPasswordButton.IsEnabled = !busy;
+        RememberMeBox.IsEnabled = !busy;
 
         if (busy)
             ShowStatus("Working…");
-        else if (StatusText.Text == "Working…")
+        else if (StatusText.Text == "Working…" || StatusText.Text == "Restoring session…")
             HideStatus();
     }
 
@@ -223,9 +240,7 @@ public partial class LoginPage : UserControl
         if (msg.Contains("INVALID_LOGIN_CREDENTIALS", StringComparison.OrdinalIgnoreCase) ||
             msg.Contains("INVALID_PASSWORD", StringComparison.OrdinalIgnoreCase) ||
             msg.Contains("EMAIL_NOT_FOUND", StringComparison.OrdinalIgnoreCase))
-        {
             return "Incorrect email or password.";
-        }
 
         if (msg.Contains("TOO_MANY_ATTEMPTS_TRY_LATER", StringComparison.OrdinalIgnoreCase))
             return "Too many attempts. Try again later.";

@@ -22,7 +22,6 @@ public sealed class FirebaseAuthService : IAuthService
     {
         ct.ThrowIfCancellationRequested();
         await _provider.CreateUserWithEmailAndPasswordAsync(email, password);
-        // Most UX flows register -> login, so we return a logged-in session:
         return await LoginAsync(email, password, ct);
     }
 
@@ -50,41 +49,25 @@ public sealed class FirebaseAuthService : IAuthService
         ct.ThrowIfCancellationRequested();
 
         var cached = _sessionStore.Load();
+        LogAuth($"TryRestore: cached={cached is not null}, hasRefresh={!string.IsNullOrWhiteSpace(cached?.RefreshToken)}");
         if (cached is null || string.IsNullOrWhiteSpace(cached.RefreshToken))
             return null;
 
         try
         {
-            async Task<FirebaseAuthLink?> InvokeRefreshAsync(object arg)
-            {
-                var mi = _provider.GetType().GetMethod("RefreshAuthAsync", new[] { arg.GetType() });
-                if (mi is null) return null;
+            LogAuth($"TryRestore: refreshing for {cached.Email}...");
+            // Refresh the session using the stored refresh token.
+            var auth = new FirebaseAuth { RefreshToken = cached.RefreshToken };
+            var refreshed = await _provider.RefreshAuthAsync(auth);
 
-                var taskObj = mi.Invoke(_provider, new[] { arg });
-                if (taskObj is not Task task) return null;
-
-                await task.ConfigureAwait(false);
-
-                // Task<T> -> read Result via reflection
-                var resultProp = taskObj.GetType().GetProperty("Result");
-                return resultProp?.GetValue(taskObj) as FirebaseAuthLink;
-            }
-
-            FirebaseAuthLink? refreshed = null;
-
-            // Prefer string overload if available
-            refreshed = await InvokeRefreshAsync(cached.RefreshToken);
-
-            // Fallback to FirebaseAuth overload if needed
-            refreshed ??= await InvokeRefreshAsync(new FirebaseAuth { RefreshToken = cached.RefreshToken });
-
-            if (refreshed is null || refreshed.User is null || string.IsNullOrWhiteSpace(refreshed.FirebaseToken))
+            LogAuth($"TryRestore: refreshed user={refreshed?.User is not null}, token={!string.IsNullOrWhiteSpace(refreshed?.FirebaseToken)}");
+            if (string.IsNullOrWhiteSpace(refreshed?.FirebaseToken))
                 return null;
 
             var session = new AuthSession
             {
-                Email = refreshed.User.Email ?? cached.Email ?? "",
-                UserId = refreshed.User.LocalId ?? cached.UserId ?? "",
+                Email = refreshed.User?.Email ?? cached.Email ?? "",
+                UserId = refreshed.User?.LocalId ?? cached.UserId ?? "",
                 IdToken = refreshed.FirebaseToken,
                 RefreshToken = refreshed.RefreshToken ?? cached.RefreshToken
             };
@@ -94,12 +77,30 @@ public sealed class FirebaseAuthService : IAuthService
 
             return session;
         }
-        catch
+        catch (Exception ex)
         {
-            // Do not clear cached token on transient failures; user can still be auto-restored later.
+            LogAuth($"TryRestore FAILED: {ex.Message}");
             return null;
         }
     }
+
+    private static void LogAuth(string msg)
+    {
+        try
+        {
+            var logDir = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "GGLauncherDev", "logs");
+            System.IO.Directory.CreateDirectory(logDir);
+            System.IO.File.AppendAllText(
+                System.IO.Path.Combine(logDir, "firebase-auth-debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] {msg}{Environment.NewLine}");
+        }
+        catch { }
+    }
+
+    /// <summary>Clears the persisted session so the user will not be auto-restored.</summary>
+    public void ClearSession() => _sessionStore.Clear();
 
     public async Task SendPasswordResetAsync(string email)
     {

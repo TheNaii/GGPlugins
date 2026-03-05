@@ -1,0 +1,164 @@
+<UserControl x:Class="LoLAM.Module.LaunchWarningOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Visibility="Collapsed">
+
+    <UserControl.Resources>
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                CornerRadius="8"
+                                Background="{TemplateBinding Background}"
+                                Padding="16,0">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#3B82F6"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.35"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                CornerRadius="8"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="16,0">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#283548"/>
+                                <Setter Property="Foreground" Value="#CBD5E1"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#0F172A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="WarningCheckBox" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Full-size dark scrim -->
+    <Grid Background="#99000000">
+        <Border Background="#121827"
+                BorderBrush="#2B3345"
+                BorderThickness="1"
+                CornerRadius="16"
+                Padding="24"
+                Width="520"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="20"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Title -->
+                <TextBlock Grid.Row="0"
+                           Text="Auto-Login Warning"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="#E2E8F0"
+                           HorizontalAlignment="Center"/>
+
+                <!-- Warning message -->
+                <TextBlock Grid.Row="1"
+                           Margin="0,14,0,0"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           Foreground="#94A3B8"
+                           FontSize="13"
+                           LineHeight="20"
+                           Text="This feature uses a global keyboard emulator to type your credentials into the Riot Client. While the plugin will attempt to keep the Riot Client focused, do not switch windows or click away until login is complete. Your username and password will be typed as visible keystrokes — anything you tab into will receive them."/>
+
+                <!-- Checkbox -->
+                <CheckBox x:Name="UnderstandCheckBox"
+                          Grid.Row="2"
+                          Margin="0,16,0,0"
+                          HorizontalAlignment="Center"
+                          Style="{StaticResource WarningCheckBox}"
+                          Checked="UnderstandCheckBox_Changed"
+                          Unchecked="UnderstandCheckBox_Changed">
+                    <TextBlock Text="I understand the risks" Foreground="#CBD5E1" FontSize="13"/>
+                </CheckBox>
+
+                <!-- Buttons -->
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="CancelButton"
+                            Grid.Column="0"
+                            Content="Cancel"
+                            Style="{StaticResource SecondaryBtn}"
+                            Click="Cancel_Click"/>
+
+                    <Button x:Name="GotItButton"
+                            Grid.Column="2"
+                            Content="Got it"
+                            IsEnabled="False"
+                            Style="{StaticResource PrimaryBtn}"
+                            Click="GotIt_Click"/>
+
+                    <Button x:Name="DontShowButton"
+                            Grid.Column="4"
+                            Content="Don't show again"
+                            IsEnabled="False"
+                            Style="{StaticResource PrimaryBtn}"
+                            Click="DontShowAgain_Click"/>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

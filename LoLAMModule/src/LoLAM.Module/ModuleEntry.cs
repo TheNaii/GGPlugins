@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Controls;
 using GGLauncher.ModuleContracts;
 using LoLAM.Core.Cloud;
+using LoLAM.Core.Riot;
 
 namespace LoLAM.Module;
 
@@ -11,9 +12,11 @@ public sealed class ModuleEntry : IGGLauncherModule
     private IModuleHost? _host;
 
     internal IAuthService? Auth { get; private set; }
+    internal FirebaseAuthService? AuthConcrete { get; private set; }
     internal ICloudAccountStore? Store { get; private set; }
     internal IPresenceService? Presence { get; private set; }
     internal IAuthSessionStore? SessionStore { get; private set; }
+    internal IRiotApiService? RiotApi { get; private set; }
 
     /// <summary>Set by LoginPage / MainPage after a successful auth so Dispose can set offline.</summary>
     internal AuthSession? ActiveSession { get; set; }
@@ -30,15 +33,21 @@ public sealed class ModuleEntry : IGGLauncherModule
             ProjectId: "lolaccountmanager"
         );
 
-        // Persisted login session file (refresh token).
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var path = Path.Combine(appData, "GGLauncher", "LoLAM", "auth.bin");
+        var dataFolder = Path.Combine(appData, "GGLauncher", "LoLAM");
+        Directory.CreateDirectory(dataFolder);
 
-        SessionStore = new FileAuthSessionStore(path);
+        var authPath = Path.Combine(dataFolder, "auth.bin");
 
-        Auth = new FirebaseAuthService(opts, SessionStore);
+        SessionStore = new FileAuthSessionStore(authPath);
+
+        var authService = new FirebaseAuthService(opts, SessionStore);
+        Auth = authService;
+        AuthConcrete = authService;
+
         Store = new FirestoreCloudAccountStore(opts);
         Presence = new FirestorePresenceService(opts);
+        RiotApi = new RiotApiService();
     }
 
     public UserControl CreateRootView()
@@ -46,10 +55,8 @@ public sealed class ModuleEntry : IGGLauncherModule
 
     public void Dispose()
     {
-        // Best-effort: mark user offline when the module is unloaded.
         if (ActiveSession is not null && Presence is not null)
         {
-            // Fire-and-forget; we can't await in Dispose.
             _ = Presence.SetOfflineAsync(ActiveSession);
         }
     }

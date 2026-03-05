@@ -1,0 +1,10 @@
+{
+  "appId": "flame-translator",
+  "version": "0.0.1",
+  "displayName": "Flame Translator",
+  "description": "Translate toxic game chat into hilarious styles — Shakespeare, Pirate, UwU, and more.",
+  "author": "NaiiGames",
+  "type": "module",
+  "entryDll": "FT.Module.dll",
+  "tagPrefix": "ft"
+}

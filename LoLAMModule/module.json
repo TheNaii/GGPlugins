@@ -1,0 +1,10 @@
+{
+  "appId": "lol-account-manager",
+  "displayName": "LoL Account Manager",
+  "description": "Encrypted account vault + quick login for League of Legends.",
+  "author": "NaiiGames",
+  "type": "module",
+  "entryDll": "LoLAM.Module.dll",
+  "version": "0.0.1",
+  "tagPrefix": "lam"
+}

@@ -1,0 +1,181 @@
+<UserControl x:Class="FT.Module.MainPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+
+        <!-- ComboBoxItem: light text on dark popup -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#334155"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AccentButton" TargetType="Button">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="8"
+                                Background="#7C3AED"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#6D28D9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#5B21B6"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SmallButton" TargetType="Button">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Background" Value="#334155"/>
+            <Setter Property="BorderBrush" Value="#64748B"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="5"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#475569"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1E293B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Width="520" HorizontalAlignment="Left" Margin="28,20,28,28">
+
+            <!-- Header -->
+            <TextBlock Text="Flame Translator"
+                       FontSize="20" FontWeight="Bold"
+                       Margin="0,0,0,4"/>
+
+            <TextBlock Text="Paste toxic text, pick a style, and translate it into something beautiful."
+                       Opacity="0.55" Margin="0,0,0,16" TextWrapping="Wrap"/>
+
+            <!-- Input -->
+            <TextBlock Text="Input" FontSize="11" Opacity="0.55" Margin="0,0,0,4"/>
+            <TextBox x:Name="InputBox"
+                     Height="100"
+                     FontSize="14"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     Padding="8,6"
+                     Margin="0,0,0,14"/>
+
+            <!-- Style + Provider row -->
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Style" FontSize="11" Opacity="0.55" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="StyleCombo" Height="36"
+                              VerticalContentAlignment="Center" Padding="8,0"
+                              MaxDropDownHeight="260"
+                              SelectionChanged="Style_Changed">
+                        <ComboBoxItem Content="Shakespeare"         Tag="Shakespeare"/>
+                        <ComboBoxItem Content="Pirate"              Tag="Pirate"/>
+                        <ComboBoxItem Content="UwU"                 Tag="UwU"/>
+                        <ComboBoxItem Content="Cute"                Tag="Cute"/>
+                        <ComboBoxItem Content="Lisp"                Tag="Lisp (speech impediment)"/>
+                        <ComboBoxItem Content="Formal Business"     Tag="Formal corporate email"/>
+                        <ComboBoxItem Content="Southern Belle"      Tag="Southern Belle / cowboy"/>
+                        <ComboBoxItem Content="Drill Sergeant"      Tag="Military drill sergeant"/>
+                        <ComboBoxItem Content="Therapist"           Tag="Overly understanding therapist"/>
+                        <ComboBoxItem Content="Passive Aggressive"  Tag="Passive aggressive coworker"/>
+                        <ComboBoxItem Content="Baby Talk"           Tag="Baby talk / toddler"/>
+                        <ComboBoxItem Content="Medieval Herald"     Tag="Medieval town herald making a proclamation"/>
+                        <ComboBoxItem Content="Surfer Bro"          Tag="Laid-back surfer bro"/>
+                        <ComboBoxItem Content="Sports Commentator"  Tag="Excited sports commentator"/>
+                        <ComboBoxItem Content="Old Timey Gangster"  Tag="1920s mobster"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Width="140">
+                    <TextBlock Text="Provider" FontSize="11" Opacity="0.55" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="ProviderCombo" Height="36"
+                              VerticalContentAlignment="Center" Padding="8,0"
+                              SelectionChanged="Provider_Changed">
+                        <ComboBoxItem Content="Mistral"  Tag="Mistral"/>
+                        <ComboBoxItem Content="Groq"     Tag="Groq"/>
+                        <ComboBoxItem Content="Gemini"   Tag="Gemini"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+
+            <!-- Translate button -->
+            <Button x:Name="TranslateBtn"
+                    Style="{StaticResource AccentButton}"
+                    Content="Translate"
+                    HorizontalAlignment="Stretch"
+                    Click="Translate_Click"
+                    Margin="0,0,0,14"/>
+
+            <!-- Status -->
+            <TextBlock x:Name="StatusText"
+                       FontSize="11" Opacity="0.5"
+                       Margin="0,0,0,6"/>
+
+            <!-- Output -->
+            <TextBlock Text="Output" FontSize="11" Opacity="0.55" Margin="0,0,0,4"/>
+            <TextBox x:Name="OutputBox"
+                     Height="100"
+                     FontSize="14"
+                     IsReadOnly="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     Padding="8,6"
+                     Margin="0,0,0,10"/>
+
+            <Button x:Name="CopyBtn" Style="{StaticResource SmallButton}"
+                    Content="Copy to Clipboard"
+                    HorizontalAlignment="Left"
+                    Click="Copy_Click"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

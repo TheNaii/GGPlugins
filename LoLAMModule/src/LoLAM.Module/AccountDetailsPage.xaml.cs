@@ -1,4 +1,5 @@
-﻿using LoLAM.Core.Models;
+using LoLAM.Core.Models;
+using LoLAM.Core.Riot;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -9,13 +10,14 @@ using System.Windows.Controls;
 namespace LoLAM.Module;
 
 /// <summary>
-/// Full account detail editor. Opened when the user clicks "Details" on a list row.
-/// Navigates back to MainPage when the user clicks Back (or after saving).
+/// Full account detail editor. Supports both editing existing accounts
+/// and creating new accounts (isNewAccount mode).
 /// </summary>
 public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
 {
     private readonly MainPage _mainPage;
     private readonly Account _account;
+    private readonly bool _isNewAccount;
     private bool _suppressEvents;
     private bool _isDirty;
     private bool _revealPassword;
@@ -32,13 +34,22 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
         }
     }
 
-    public AccountDetailsPage(MainPage mainPage, Account account)
+    public AccountDetailsPage(MainPage mainPage, Account account, bool isNewAccount = false)
     {
         InitializeComponent();
         DataContext = this;
 
         _mainPage = mainPage;
         _account = account;
+        _isNewAccount = isNewAccount;
+
+        if (_isNewAccount)
+        {
+            PageTitle.Text = "New Account";
+            SaveButton.Content = "Add Account";
+            // New accounts start as "dirty" so Save button is always enabled
+            IsDirty = true;
+        }
 
         PopulateFields();
     }
@@ -53,7 +64,6 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
 
         SummonerNameBox.Text = _account.SummonerName ?? "";
 
-        // Riot tag: strip leading # for the text box (the XAML shows a fixed # badge)
         var tag = _account.RiotTag ?? "";
         RiotTagBox.Text = tag.StartsWith('#') ? tag[1..] : tag;
 
@@ -64,7 +74,6 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
         PasswordBox.Password = _account.Password ?? "";
         PasswordRevealBox.Text = _account.Password ?? "";
 
-        // Tier / Division / GamesPlayed — read-only, just display
         SelectComboByTag(TierCombo, _account.Tier ?? "Unranked");
         SelectComboByTag(DivisionCombo, _account.Division ?? "");
         GamesPlayedBox.Text = _account.GamesPlayedThisSplit.ToString();
@@ -74,8 +83,14 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
         LastLoginBox.Text = _account.LastLogin.HasValue ? _account.LastLogin.Value.ToString("yyyy-MM-dd HH:mm") : "";
 
         _suppressEvents = false;
-        IsDirty = false;
+
+        if (!_isNewAccount)
+        {
+            IsDirty = false;
+        }
+
         UpdateSaveStatus();
+        HideValidation();
     }
 
     private static void SelectComboByTag(ComboBox combo, string tag)
@@ -88,7 +103,6 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
                 return;
             }
         }
-        // Fallback to first item
         if (combo.Items.Count > 0)
             combo.SelectedIndex = 0;
     }
@@ -104,36 +118,75 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
     {
         _account.SummonerName = SummonerNameBox.Text.Trim();
 
-        // Re-attach the # prefix when storing
         var tagText = RiotTagBox.Text.Trim();
         _account.RiotTag = tagText.Length > 0 && !tagText.StartsWith('#')
             ? "#" + tagText
             : tagText;
 
-        // Server comes from the dropdown tag
         _account.Server = SelectedTag(ServerCombo);
-
         _account.Username = UsernameBox.Text.Trim();
         _account.Password = _revealPassword ? PasswordRevealBox.Text : PasswordBox.Password;
-
-        // Tier / Division / GamesPlayed are NOT written here — they are auto-updated via API
         _account.IsXboxLinked = XboxLinkedBox.IsChecked ?? false;
     }
 
     // ──────────────────────────────────────────
-    // Change handlers (only for editable fields)
+    // Validation
+    // ──────────────────────────────────────────
+
+    /// <summary>
+    /// Validates the form. Returns an error message, or null if valid.
+    /// </summary>
+    private string? Validate()
+    {
+        var name = SummonerNameBox.Text.Trim();
+        var tag = RiotTagBox.Text.Trim();
+        var server = SelectedTag(ServerCombo);
+
+        if (string.IsNullOrWhiteSpace(name))
+            return "Summoner Name is required.";
+
+        if (string.IsNullOrWhiteSpace(tag))
+            return "Riot Tag is required.";
+
+        if (string.IsNullOrWhiteSpace(server))
+            return "Please select a server.";
+
+        // Duplicate check: name + tag must be unique
+        var excludeForDuplicateCheck = _isNewAccount ? null : _account;
+        if (_mainPage.AccountExists(name, tag, excludeForDuplicateCheck))
+            return $"An account with the name {name}#{tag} already exists.";
+
+        return null;
+    }
+
+    private void ShowValidation(string message)
+    {
+        ValidationText.Text = message;
+        ValidationBanner.Visibility = Visibility.Visible;
+    }
+
+    private void HideValidation()
+    {
+        ValidationText.Text = "";
+        ValidationBanner.Visibility = Visibility.Collapsed;
+    }
+
+    // ──────────────────────────────────────────
+    // Change handlers
     // ──────────────────────────────────────────
 
     private void Field_TextChanged(object sender, RoutedEventArgs e)
     {
         if (_suppressEvents) return;
         IsDirty = true;
+        HideValidation();
     }
 
     private void Field_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_suppressEvents) return;
         IsDirty = true;
+        HideValidation();
     }
 
     private void Field_CheckChanged(object sender, RoutedEventArgs e)
@@ -198,47 +251,122 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
+        // Validate form fields first
+        var error = Validate();
+        if (error is not null)
+        {
+            ShowValidation(error);
+            return;
+        }
+
+        // Check Xbox uniqueness per server
+        if ((XboxLinkedBox.IsChecked ?? false))
+        {
+            var server = SelectedTag(ServerCombo);
+            var exclude = _isNewAccount ? null : _account;
+            if (_mainPage.IsXboxLinkedOnServer(server, exclude))
+            {
+                ShowValidation($"Another account on {server} already has Xbox Game Pass linked. Only one account per server can have it.");
+                return;
+            }
+        }
+
+        HideValidation();
+
+        // For new accounts, verify the summoner actually exists via Riot API
+        if (_isNewAccount && _mainPage.RiotApi is not null)
+        {
+            var name = SummonerNameBox.Text.Trim();
+            var tag = RiotTagBox.Text.Trim().TrimStart('#');
+            var server = SelectedTag(ServerCombo);
+
+            SaveButton.IsEnabled = false;
+            SaveStatus.Text = "Verifying account...";
+
+            try
+            {
+                var info = await _mainPage.RiotApi.GetAccountByRiotIdAsync(name, tag, server);
+                if (info is null)
+                {
+                    ShowValidation($"Account {name}#{tag} was not found on {server}. Check the summoner name, tag, and server.");
+                    SaveButton.IsEnabled = true;
+                    SaveStatus.Text = "";
+                    return;
+                }
+
+                // Store the resolved PUUID so we don't have to look it up again
+                _account.Puuid = info.Puuid;
+            }
+            catch
+            {
+                ShowValidation("Could not verify account. Check your internet connection and try again.");
+                SaveButton.IsEnabled = true;
+                SaveStatus.Text = "";
+                return;
+            }
+
+            SaveButton.IsEnabled = true;
+            SaveStatus.Text = "";
+        }
+
         ApplyToModel();
+
+        if (_isNewAccount)
+        {
+            _account.CreatedAt = DateTime.Now;
+            _mainPage.AddNewAccount(_account);
+            _mainPage.RebuildServersPublic();
+            await _mainPage.OnDetailsPageSavedAsync("Added new account.");
+        }
+        else
+        {
+            await _mainPage.OnDetailsPageSavedAsync("Saved account details.");
+            _mainPage.RebuildServersPublic();
+        }
+
         IsDirty = false;
-
-        await _mainPage.OnDetailsPageSavedAsync("Saved account details.");
-        _mainPage.RebuildServersPublic();
-
         NavigateBack();
     }
 
     private void Discard_Click(object sender, RoutedEventArgs e)
     {
-        PopulateFields();
+        if (_isNewAccount)
+        {
+            // Discard on a new account = just go back without adding
+            NavigateBack();
+        }
+        else
+        {
+            PopulateFields();
+        }
     }
 
     private void Back_Click(object sender, RoutedEventArgs e)
     {
-        if (!IsDirty)
+        if (!IsDirty || (_isNewAccount && !HasUserEnteredAnything()))
         {
             NavigateBack();
             return;
         }
 
-        // Use the launcher's custom dialog system if available
-        if (Application.Current.MainWindow is GGLauncher.App.MainWindow mw)
-        {
-            mw.ShowCustomConfirm(
-                "Unsaved Changes",
-                "You have unsaved changes. Discard them and go back?",
-                () => NavigateBack());
-        }
-        else
-        {
-            // Fallback (should never happen in normal use)
-            var result = MessageBox.Show(
-                "You have unsaved changes. Discard them and go back?",
-                "Unsaved Changes",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-            if (result == MessageBoxResult.Yes)
-                NavigateBack();
-        }
+        ConfirmDialog.Show(
+            _isNewAccount ? "Discard" : "Unsaved",
+            _isNewAccount
+                ? "Discard this new account and go back?"
+                : "You have unsaved changes. Discard them and go back?",
+            () => NavigateBack());
+    }
+
+    /// <summary>
+    /// Checks whether the user has typed anything meaningful in the new account form.
+    /// Used to decide whether to show a confirmation prompt on back.
+    /// </summary>
+    private bool HasUserEnteredAnything()
+    {
+        return !string.IsNullOrWhiteSpace(SummonerNameBox.Text)
+            || !string.IsNullOrWhiteSpace(RiotTagBox.Text)
+            || !string.IsNullOrWhiteSpace(UsernameBox.Text)
+            || PasswordBox.Password.Length > 0;
     }
 
     private void NavigateBack()
@@ -259,7 +387,10 @@ public partial class AccountDetailsPage : UserControl, INotifyPropertyChanged
 
     private void UpdateSaveStatus()
     {
-        SaveStatus.Text = IsDirty ? "Unsaved changes" : "";
+        if (_isNewAccount)
+            SaveStatus.Text = "";
+        else
+            SaveStatus.Text = IsDirty ? "Unsaved changes" : "";
     }
 
     // ──────────────────────────────────────────
