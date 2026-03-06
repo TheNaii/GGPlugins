@@ -1,0 +1,122 @@
+<UserControl x:Class="CD.Module.JoinPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <Style x:Key="RoleBtn" TargetType="ToggleButton">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="64"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" CornerRadius="8"
+                                Background="#1E293B"
+                                BorderBrush="#334155"
+                                BorderThickness="2"
+                                Padding="4">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="{TemplateBinding Tag}"
+                                           FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           FontSize="9" Opacity="0.7"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#7C3AED"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#2D2059"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#334155"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccentButton" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="8"
+                                Background="#7C3AED"
+                                Padding="24,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#6D28D9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+        <StackPanel Width="360">
+
+            <TextBlock Text="Clash Drafter"
+                       FontSize="24" FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,4"/>
+
+            <TextBlock Text="Shared drafting and strategy for your team."
+                       Opacity="0.5" HorizontalAlignment="Center"
+                       Margin="0,0,0,28"/>
+
+            <!-- Username -->
+            <TextBlock Text="Username" FontSize="11" Opacity="0.55" Margin="0,0,0,4"/>
+            <TextBox x:Name="UsernameBox"
+                     Height="36" FontSize="14"
+                     MaxLength="16"
+                     Padding="10,0"
+                     VerticalContentAlignment="Center"
+                     Margin="0,0,0,20"/>
+
+            <!-- Role selection -->
+            <TextBlock Text="Preferred Role" FontSize="11" Opacity="0.55" Margin="0,0,0,6"/>
+            <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,20">
+                <ToggleButton x:Name="RoleTop"     Style="{StaticResource RoleBtn}" Content="TOP"     Tag="⚔" Click="Role_Click"/>
+                <ToggleButton x:Name="RoleJungle"  Style="{StaticResource RoleBtn}" Content="JNG"     Tag="🌲" Click="Role_Click"/>
+                <ToggleButton x:Name="RoleMid"     Style="{StaticResource RoleBtn}" Content="MID"     Tag="🔮" Click="Role_Click"/>
+                <ToggleButton x:Name="RoleAdc"     Style="{StaticResource RoleBtn}" Content="ADC"     Tag="🏹" Click="Role_Click"/>
+                <ToggleButton x:Name="RoleSupport" Style="{StaticResource RoleBtn}" Content="SUP"     Tag="🛡" Click="Role_Click"/>
+            </WrapPanel>
+
+            <!-- Error -->
+            <TextBlock x:Name="ErrorText"
+                       Foreground="#FF6B6B"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,10"
+                       Visibility="Collapsed"/>
+
+            <!-- Continue -->
+            <Button x:Name="ContinueBtn"
+                    Style="{StaticResource AccentButton}"
+                    Content="Continue"
+                    HorizontalAlignment="Stretch"
+                    Click="Continue_Click"/>
+
+            <TextBlock x:Name="StatusText"
+                       FontSize="11" Opacity="0.5"
+                       HorizontalAlignment="Center"
+                       Margin="0,8,0,0"/>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

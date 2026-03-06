@@ -1,0 +1,10 @@
+{
+  "appId": "clash-drafter",
+  "version": "0.0.1",
+  "displayName": "Clash Drafter",
+  "description": "Shared team drafting and planning for Clash and competitive League.",
+  "author": "NaiiGames",
+  "type": "module",
+  "entryDll": "CD.Module.dll",
+  "tagPrefix": "cd"
+}
